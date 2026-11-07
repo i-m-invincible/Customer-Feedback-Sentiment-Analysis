@@ -1,0 +1,89 @@
+{
+  "model": "TF-IDF (word unigrams and bigrams) + LinearSVC",
+  "dataset": "CrowdFlower / Twitter US Airline Sentiment (February 2015)",
+  "dataset_url": "https://www.kaggle.com/datasets/crowdflower/twitter-airline-sentiment",
+  "dataset_license": "CC BY-NC-SA 4.0 (see data/SOURCES.md)",
+  "source_rows": 14640,
+  "usable_rows": 14238,
+  "train_rows": 11390,
+  "test_rows": 2848,
+  "random_state": 42,
+  "split": "80/20 stratified holdout after normalized-text deduplication",
+  "class_counts": {
+    "negative": 9065,
+    "neutral": 2961,
+    "positive": 2212
+  },
+  "accuracy": 0.8054775280898876,
+  "macro_f1": 0.7416358058775852,
+  "majority_baseline_accuracy": 0.6365870786516854,
+  "classification_report": {
+    "negative": {
+      "precision": 0.8677333333333334,
+      "recall": 0.897407611693326,
+      "f1-score": 0.8823210412147505,
+      "support": 1813.0
+    },
+    "neutral": {
+      "precision": 0.6432432432432432,
+      "recall": 0.6030405405405406,
+      "f1-score": 0.6224934612031386,
+      "support": 592.0
+    },
+    "positive": {
+      "precision": 0.7416267942583732,
+      "recall": 0.6997742663656885,
+      "f1-score": 0.7200929152148664,
+      "support": 443.0
+    },
+    "accuracy": 0.8054775280898876,
+    "macro avg": {
+      "precision": 0.7508677902783166,
+      "recall": 0.7334074728665184,
+      "f1-score": 0.7416358058775852,
+      "support": 2848.0
+    },
+    "weighted avg": {
+      "precision": 0.8014540741537194,
+      "recall": 0.8054775280898876,
+      "f1-score": 0.8030777170627761,
+      "support": 2848.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      1627,
+      140,
+      46
+    ],
+    [
+      173,
+      357,
+      62
+    ],
+    [
+      75,
+      58,
+      310
+    ]
+  ],
+  "labels": [
+    "negative",
+    "neutral",
+    "positive"
+  ],
+  "vocabulary_size": 23202,
+  "data_sha256": "b8a2476196ab1a0264582538a13f98a37d48fb3b2c407a5a31aaf21d8b241485",
+  "model_sha256": "40bbbd6a3291159157137fe58b8be0d69620bfa16112e76850f45ef6312e9545",
+  "versions": {
+    "python": "3.12.14",
+    "scikit-learn": "1.8.0",
+    "pandas": "2.2.3"
+  },
+  "limitations": [
+    "English airline feedback; accuracy may differ in other business domains.",
+    "Sarcasm, mixed sentiment, short messages, and unseen wording can be misclassified.",
+    "No probability or confidence percentage is produced by this LinearSVC model.",
+    "The bundled model is the exact training-split model evaluated here; it is not refitted on test data."
+  ]
+}
