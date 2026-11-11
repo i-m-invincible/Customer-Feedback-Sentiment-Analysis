@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import train_test_split
 
 from sentiment import (
-    LABELS, MAX_ROWS, ROOT, analyze_feedback, clean_text,
+    LABELS, MAX_ROWS, ROOT, analyze_feedback, analyze_feedback_frame, clean_text,
     export_csv, load_model, read_feedback_csv,
 )
 
@@ -44,6 +44,38 @@ class SentimentTests(unittest.TestCase):
 
     def test_cleanup_keeps_negation(self):
         self.assertEqual(clean_text("@Airline NOT happy &amp; not helpful https://example.com"), "not happy & not helpful")
+
+    def test_csv_predictions_keep_original_columns_and_row_order(self):
+        frame = read_feedback_csv(b'review_id,review\n001,"Thanks for the excellent service!"\n002,""\n003,"My flight was cancelled."\n')
+        results = analyze_feedback_frame(self.model, frame, "review")
+        self.assertEqual(results.review_id.tolist(), ["001", "002", "003"])
+        self.assertEqual(results.review.tolist(), frame.review.tolist())
+        self.assertEqual(results.feedback.tolist(), frame.review.tolist())
+        self.assertEqual(results.sentiment.tolist(), ["positive", "unclassified", "negative"])
+        exported = pd.read_csv(io.BytesIO(export_csv(results)), dtype=str, keep_default_na=False)
+        self.assertEqual(exported.review_id.tolist(), ["001", "002", "003"])
+
+    def test_original_result_column_names_never_overwrite_predictions(self):
+        frame = pd.DataFrame({
+            "review": ["Thank you for the excellent service!"],
+            "feedback": ["Existing feedback"],
+            "sentiment": ["Existing sentiment"],
+            "status": ["Existing status"],
+            "original_sentiment": ["Already prefixed"],
+        }, index=[42])
+        results = analyze_feedback_frame(self.model, frame, "review")
+        self.assertEqual(results.at[0, "sentiment"], "positive")
+        self.assertEqual(results.at[0, "original_feedback"], "Existing feedback")
+        self.assertEqual(results.at[0, "original_status"], "Existing status")
+        self.assertEqual(results.at[0, "original_original_sentiment"], "Existing sentiment")
+        self.assertEqual(results.at[0, "original_sentiment"], "Already prefixed")
+
+    def test_blank_csv_lines_are_retained(self):
+        frame = read_feedback_csv(b'feedback\nGreat service\n\nTerrible service\n')
+        results = analyze_feedback_frame(self.model, frame, "feedback")
+        self.assertEqual(len(results), 3)
+        self.assertEqual(results.at[1, "status"], "Empty feedback")
+        self.assertEqual(results.columns.tolist(), ["feedback", "sentiment", "status"])
 
     def test_csv_preserves_literal_na_and_accepts_bom(self):
         frame = read_feedback_csv(b'\xef\xbb\xbffeedback,other\n"NA",1\n"Thanks, great service!",2\n')

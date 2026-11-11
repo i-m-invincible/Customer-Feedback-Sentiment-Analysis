@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from sentiment import (
-    LABELS, MAX_CHARACTERS, ROOT, analyze_feedback, export_csv,
+    LABELS, MAX_CHARACTERS, ROOT, analyze_feedback, analyze_feedback_frame, export_csv,
     load_model, read_feedback_csv,
 )
 
@@ -157,7 +157,8 @@ with batch_tab:
         with st.expander(f"Preview {len(frame):,} feedback entries"):
             st.dataframe(frame[[column]].head(10), hide_index=True, width="stretch")
         if st.button("Analyze feedback", type="primary", key="analyze_batch"):
-            st.session_state["batch_result"] = analyze_feedback(model, frame[column].tolist())
+            with st.spinner("Analyzing customer feedback…"):
+                st.session_state["batch_result"] = analyze_feedback_frame(model, frame, column)
             st.session_state["batch_signature"] = signature
         if st.session_state.get("batch_signature") == signature:
             results = st.session_state["batch_result"]
@@ -182,11 +183,16 @@ with batch_tab:
                     negative_share = counts["negative"] / len(classified)
                     st.write(f"{negative_share:.0%} of classified feedback is negative.")
                     st.caption("Review negative responses for recurring service issues. Sentiment alone does not identify a root cause.")
-            filter_col, download_col = st.columns([2, 1])
+            filter_col, search_col, download_col = st.columns([1, 1.5, 1])
             selected = filter_col.selectbox("Show responses", ["All", "Negative", "Neutral", "Positive", "Unclassified"], key="sentiment_filter")
+            search = search_col.text_input("Search feedback", placeholder="Search words or phrases…", key="feedback_search")
             visible = results if selected == "All" else results[results["sentiment"] == selected.lower()]
+            if search.strip():
+                visible = visible[visible["feedback"].str.contains(search.strip(), case=False, regex=False, na=False)]
+            if visible.empty:
+                st.info("No responses match these filters. Try another sentiment or search phrase.")
             st.dataframe(visible, hide_index=True, width="stretch", column_config={"feedback": st.column_config.TextColumn("Customer feedback", width="large"), "sentiment": "Sentiment", "status": "Status"})
-            st.caption(f"Showing {len(visible):,} of {len(results):,} responses. The download includes all results.")
+            st.caption(f"Showing {len(visible):,} of {len(results):,} responses. The download includes all results and original CSV columns.")
             download_col.download_button("Download results", data=export_csv(results), file_name="feedback_sentiment.csv", mime="text/csv")
     st.download_button("Download sample CSV", data=(ROOT / "data" / "sample_feedback.csv").read_bytes(), file_name="sample_feedback.csv", mime="text/csv")
 

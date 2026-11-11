@@ -80,13 +80,34 @@ def analyze_feedback(model, values) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["feedback", "sentiment", "status"])
 
 
+def analyze_feedback_frame(model, frame: pd.DataFrame, column: str) -> pd.DataFrame:
+    """Add predictions while retaining source columns and their row order."""
+    if column not in frame.columns:
+        raise ValueError("Choose a feedback column that exists in the CSV.")
+    results = analyze_feedback(model, frame[column].tolist())
+    # Keep the interface's three result columns stable. Preserve colliding source
+    # names under an unused original_ name, including already-prefixed columns.
+    occupied = set(frame.columns) | set(results.columns)
+    for name in frame.columns:
+        if name == column == "feedback":
+            continue
+        destination = name
+        if destination in results.columns:
+            destination = f"original_{name}"
+            while destination in occupied:
+                destination = f"original_{destination}"
+        results[destination] = frame[name].to_numpy()
+        occupied.add(destination)
+    return results
+
+
 def read_feedback_csv(payload: bytes) -> pd.DataFrame:
     if len(payload) > MAX_FILE_BYTES:
         raise ValueError("Choose a CSV smaller than 5 MB.")
     try:
         frame = pd.read_csv(
             io.BytesIO(payload), encoding="utf-8-sig", dtype=str,
-            keep_default_na=False, nrows=MAX_ROWS + 1,
+            keep_default_na=False, skip_blank_lines=False, nrows=MAX_ROWS + 1,
         )
     except (pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeDecodeError) as exc:
         raise ValueError("Upload a valid UTF-8 CSV with a header row.") from exc

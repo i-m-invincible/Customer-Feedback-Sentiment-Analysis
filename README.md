@@ -34,8 +34,8 @@ Review holdout accuracy, macro F1, and precision and recall for each sentiment c
 
 - **Single feedback:** enter a review or message and see its predicted sentiment.
 - **Feedback overview:** upload a CSV, select the feedback column, and analyze up to 5,000 responses.
-- **Sentiment analytics:** view positive, neutral, and negative counts, a distribution chart, and filtered responses.
-- **Downloads:** export all predictions with a status for every row, including blank or unrecognized feedback.
+- **Sentiment analytics:** view positive, neutral, and negative counts, a distribution chart, sentiment filters, and case-insensitive text search.
+- **Downloads:** export all predictions with the original CSV columns (such as review IDs), plus a status for every row, including blank or unrecognized feedback.
 - **Model results:** inspect measured holdout performance, per-class metrics, and a confusion matrix.
 
 The app runs locally with a bundled trained model. It does not retrain on startup, download data during use, or require an API key. Uploaded feedback remains in the active session and is not saved by the application.
@@ -84,6 +84,8 @@ feedback
 
 Limits: **5 MB**, **5,000 rows**, and **5,000 characters per response**. Rows with empty text, no known vocabulary, or excessive length are retained as `unclassified` with an explanatory status. The chart counts only classified responses. Downloads contain all rows, regardless of the current filter, and escape formula-like values for safer spreadsheet opening.
 
+Extra columns such as `review_id`, `date`, or `product` are retained in the results and download, in the same row order. The selected text also appears as `feedback`. If an original column conflicts with the generated `feedback`, `sentiment`, or `status` columns, it receives an unused `original_` prefix so source values are preserved. Blank CSV lines remain in the results as unclassified rows. Search matches literal words or phrases in the feedback and combines with the sentiment filter; it does not change the summary counts or full download.
+
 ## Model and evaluation
 
 | Item | Implementation |
@@ -126,11 +128,23 @@ python train.py --data path/to/feedback.csv --output artifacts
 python -m unittest discover -s tests -v
 ```
 
-The 12 tests cover the three sentiment classes, invalid inputs, CSV limits, downloads, artifact verification, startup without training, the Streamlit forms and batch filter, and reproduction of published metrics from the saved model.
+The tests cover the three sentiment classes, invalid inputs, CSV limits, downloads, preservation of IDs and colliding source columns, blank rows, artifact verification, startup without training, Streamlit forms, CSV uploads, combined search and sentiment filters, stale-result handling, and reproduction of published metrics from the saved model. A server smoke test also launches Streamlit, checks its health endpoint and page, and stops the process.
+
+The **Streamlit checks** GitHub Actions workflow runs the suite and checks dependency compatibility on Python 3.12 for pushes and pull requests to `main`. It can also be started manually from the repository's **Actions** tab.
 
 ## Streamlit deployment
 
-The repository contains the trained model and pinned requirements. In Streamlit Community Cloud, select this repository, branch **`main`**, entrypoint **`app.py`**, and Python **3.12** in advanced settings. The project is ready for deployment; no public live URL is claimed here.
+The repository contains the trained model and pinned requirements. In [Streamlit Community Cloud](https://share.streamlit.io/), connect GitHub and create an app with these settings:
+
+| Setting | Value |
+| --- | --- |
+| Repository | `i-m-invincible/Customer-Feedback-Sentiment-Analysis` |
+| Branch | `main` |
+| Main file path | `app.py` |
+| Python version (advanced settings) | `3.12` |
+| Secrets / API keys | None required |
+
+For a private repository, the connected Streamlit account must have access to it. See the [official deployment guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app) for account setup. The project is ready for deployment; no public live URL is claimed here.
 
 ## Project layout
 
@@ -142,6 +156,7 @@ The repository contains the trained model and pinned requirements. In Streamlit 
 | `artifacts/` | Trained pipeline and measured results |
 | `data/` | Adapted labelled data, illustrative samples, and attribution |
 | `tests/` | Model, data handling, and Streamlit application checks |
+| `.github/workflows/streamlit-checks.yml` | Automated dependency, prediction, interface, and HTTP startup checks |
 | `.streamlit/config.toml` | Minimal light theme and upload limit |
 
 The implementation stays within the résumé stack: Python, scikit-learn, Pandas, TF-IDF, SVM, and Streamlit.
