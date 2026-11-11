@@ -1,0 +1,75 @@
+name: Capture Streamlit demo
+on:
+  push:
+    branches:
+      - codex/sentiment-demo-screenshots
+permissions:
+  contents: read
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt playwright==1.51.1
+      - run: python -m playwright install --with-deps chromium
+      - name: Verify app and capture screens
+        run: |
+          python -m unittest discover -s tests -v
+          python - <<'PY'
+          import subprocess
+          import time
+          import urllib.request
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright, expect
+          out = Path("demo-screenshots")
+          out.mkdir()
+          with open(out / "streamlit.log", "w") as log:
+              server = subprocess.Popen(
+                  ["python", "-m", "streamlit", "run", "app.py",
+                   "--server.address", "127.0.0.1", "--server.port", "8501",
+                   "--browser.gatherUsageStats", "false"],
+                  stdout=log, stderr=subprocess.STDOUT,
+              )
+              try:
+                  for attempt in range(60):
+                      try:
+                          with urllib.request.urlopen("http://127.0.0.1:8501/_stcore/health", timeout=1) as response:
+                              if response.status == 200:
+                                  break
+                      except OSError:
+                          time.sleep(1)
+                  with sync_playwright() as p:
+                      browser = p.chromium.launch()
+                      page = browser.new_page(viewport={"width": 1440, "height": 1100}, device_scale_factor=1)
+                      page.goto("http://127.0.0.1:8501")
+                      expect(page.get_by_text("Sentiment model ready", exact=False)).to_be_visible(timeout=30000)
+                      page.get_by_role("combobox", name="Try an example").click()
+                      page.get_by_role("option", name="Positive example", exact=True).click()
+                      page.get_by_role("button", name="Analyze sentiment", exact=True).click()
+                      expect(page.locator(".result-name.positive")).to_have_text("Positive")
+                      page.screenshot(path=str(out / "single-feedback.png"), full_page=True)
+                      page.set_viewport_size({"width": 1440, "height": 1680})
+                      page.get_by_role("tab", name="Feedback overview").click()
+                      page.get_by_role("button", name="Analyze feedback", exact=True).click()
+                      expect(page.get_by_text("Sentiment distribution", exact=True)).to_be_visible()
+                      page.wait_for_timeout(2000)
+                      page.screenshot(path=str(out / "feedback-overview.png"), full_page=True)
+                      page.set_viewport_size({"width": 1440, "height": 1400})
+                      page.get_by_role("tab", name="Model & results").click()
+                      expect(page.get_by_text("80.5%", exact=True)).to_be_visible()
+                      page.screenshot(path=str(out / "model-results.png"), full_page=True)
+                      browser.close()
+              finally:
+                  server.terminate()
+                  server.wait(timeout=15)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: streamlit-demo-screenshots
+          path: demo-screenshots/
+          retention-days: 3
