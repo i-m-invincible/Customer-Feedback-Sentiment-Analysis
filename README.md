@@ -6,6 +6,30 @@ A minimal Streamlit application that classifies customer feedback as **positive*
 
 Python · scikit-learn · Pandas · TF-IDF · SVM · Streamlit
 
+## Demo screenshots
+
+Captured from the running Streamlit app with the bundled TF-IDF + SVM model. The overview uses the 12 illustrative sample responses.
+
+**Single feedback**  
+Choose an example or enter a response, then select **Analyze sentiment**.
+
+![Single feedback analysis showing a positive prediction](docs/screenshots/single-feedback.png)
+
+<details>
+<summary>Feedback overview and model results</summary>
+
+**Feedback overview**  
+Analyze the sample CSV or upload feedback to see sentiment counts, a distribution chart, filters, and downloadable predictions.
+
+![Feedback overview with sample response counts and sentiment distribution](docs/screenshots/feedback-overview.png)
+
+**Model & results**  
+Review holdout accuracy, macro F1, and precision and recall for each sentiment class.
+
+![Model results with measured holdout performance and per-class metrics](docs/screenshots/model-results.png)
+
+</details>
+
 ## What the application does
 
 - **Single feedback:** enter a review or message and see its predicted sentiment.
