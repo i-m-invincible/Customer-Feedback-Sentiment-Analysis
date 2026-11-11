@@ -52,7 +52,7 @@ jobs:
                       page.get_by_role("button", name="Analyze sentiment", exact=True).click()
                       expect(page.locator(".result-name.positive")).to_have_text("Positive")
                       page.screenshot(path=str(out / "single-feedback.png"), full_page=True)
-                      page.set_viewport_size({"width": 1440, "height": 1680})
+                      page.set_viewport_size({"width": 1440, "height": 1950})
                       page.get_by_role("tab", name="Feedback overview").click()
                       page.get_by_role("button", name="Analyze feedback", exact=True).click()
                       expect(page.get_by_text("Sentiment distribution", exact=True)).to_be_visible()
@@ -61,6 +61,7 @@ jobs:
                       page.set_viewport_size({"width": 1440, "height": 1400})
                       page.get_by_role("tab", name="Model & results").click()
                       expect(page.get_by_text("80.5%", exact=True)).to_be_visible()
+                      page.wait_for_timeout(500)
                       page.screenshot(path=str(out / "model-results.png"), full_page=True)
                       browser.close()
               finally:
